@@ -1,0 +1,78 @@
+---
+title: "Dual Task RLWM te&le"
+author: "Ham Huang"
+date: "10/03/2019, @Berkeley"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include = TRUE}
+#somehow include = TRUE. The default False does not work.
+knitr::opts_chunk$set(echo = F, message = F, warning = F) #for knitting the script. echo = F to not show code, warning = FALSE to show no warnings
+```
+```{r}
+#define some basic parameters
+numBlocks = 10 #but we have to take out the 10th block in analysis
+
+data2 = read.csv("cleaned-DT-RLWM-version2.csv")
+data2 = data2[which(data2$numTrial %in% c(10,11,12)),]
+te_data2 = read.csv("cleaned-DT-RLWM-version2-te.csv")
+data3 = read.csv("cleaned-DT-RLWM-version3.csv")
+data3 = data3[which(data3$numTrial %in% c(10,11,12)),]
+te_data3 = read.csv("cleaned-DT-RLWM-version3-te.csv")
+data4 = read.csv("cleaned-DT-RLWM-version4.csv")
+data4 = data4[which(data4$numTrial %in% c(10,11,12)),]
+te_data4 = read.csv("cleaned-DT-RLWM-version4-te.csv")
+
+```
+# Section 2: Prep work for analysis.
+
+### Import r and python packages:
+p.s. make sure the r studio is up-to-date, the use_python path is using python 3, and python packages are installed in that path.
+
+```{r}
+library(tidyverse)
+source("func.R")#self-defined useful functions
+``` 
+
+
+# Section 3: Testing. 
+```{r}
+# involves dplyr
+te_df <- shapeMean(te_data2, 'ns','dt', 'subject')
+df <- shapeMean(data2, 'ns','dt', 'subject')
+te_df$diff = df$Cor-te_df$Cor
+
+te_df2 <- shapeBoth(te_df, 'ns','dt')
+
+#plot 1 testing phase accuracy
+lineplt(te_df2, as.factor(ns), diff_m, as.factor(dt),"Asym acc Learn-Test by condition (E1)","set size condition","Average accuracy")+ geom_errorbar(aes(ymin=diff_m-diff_se, ymax=diff_m+diff_se), width=.2,
+               position=position_dodge(0))+labs(color = "dt condition")+ylim(-0.05,0.3)
+
+```
+
+```{r}
+# involves dplyr
+te_df <- shapeMean(te_data3, 'ns','dt', 'subject')
+df <- shapeMean(data3, 'ns','dt', 'subject')
+te_df$diff = df$Cor-te_df$Cor
+te_df2 <- shapeBoth(te_df, 'ns','dt')
+
+#plot 1 testing phase accuracy
+lineplt(te_df2, as.factor(ns), diff_m, as.factor(dt),"Asym acc Learn-Test by condition (E2)","set size condition","Average accuracy")+ geom_errorbar(aes(ymin=diff_m-diff_se, ymax=diff_m+diff_se), width=.2,
+               position=position_dodge(0))+labs(color = "dt condition")+ylim(-0.05,0.3)
+```
+
+```{r}
+# involves dplyr
+te_df <- shapeMean(te_data4, 'ns','dt', 'subject')
+df <- shapeMean(data4, 'ns','dt', 'subject')
+te_df$diff = df$Cor-te_df$Cor
+te_df2 <- shapeBoth(te_df, 'ns','dt')
+
+#plot 1 testing phase accuracy
+lineplt(te_df2, as.factor(ns), diff_m, as.factor(dt),"Asym acc Learn-Test by condition (E3)","set size condition","Average accuracy")+ geom_errorbar(aes(ymin=diff_m-diff_se, ymax=diff_m+diff_se), width=.2,
+               position=position_dodge(0))+labs(color = "dt condition")+ylim(-0.05,0.3)
+```
+

@@ -1,0 +1,119 @@
+---
+title: "Dual Task RLWM Testing"
+author: "Ham Huang"
+date: "10/03/2019, @Berkeley"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include = TRUE}
+#somehow include = TRUE. The default False does not work.
+knitr::opts_chunk$set(echo = F, message = F, warning = F) #for knitting the script. echo = F to not show code, warning = FALSE to show no warnings
+```
+```{r}
+#define some basic parameters
+numBlocks = 10 #but we have to take out the 10th block in analysis
+
+te_data2 = read.csv("cleaned-DT-RLWM-version2-te.csv")
+te_data3 = read.csv("cleaned-DT-RLWM-version3-te.csv")
+te_data4 = read.csv("cleaned-DT-RLWM-version4-te.csv")
+numSub2 = length(unique(te_data2$subject))
+numSub3 = length(unique(te_data3$subject))
+numSub4 = length(unique(te_data4$subject))
+```
+# Section 2: Prep work for analysis.
+
+### Import r and python packages:
+p.s. make sure the r studio is up-to-date, the use_python path is using python 3, and python packages are installed in that path.
+
+```{r}
+library(tidyverse)
+source("func.R")#self-defined useful functions
+``` 
+
+# Section 3: Testing. 
+```{r}
+# involves dplyr
+te_df <- shapeMean(te_data2, 'ns','dt', 'subject')
+te_df2 <- shapeBoth(te_df, 'ns','dt')
+attach(te_df)
+diff2 = te_df[which(ns==2&dt==0),]$Cor - te_df[which(ns==2&dt==1),]$Cor
+diff3 = te_df[which(ns==3&dt==0),]$Cor - te_df[which(ns==3&dt==1),]$Cor
+diff6 = te_df[which(ns==6&dt==0),]$Cor - te_df[which(ns==6&dt==1),]$Cor
+detach(te_df)
+p2 = t.test(diff2, mu=0, paired = F)
+p3 = t.test(diff3, mu=0, paired = F)
+p6 = t.test(diff6, mu=0, paired = F)
+
+print(paste0('In exp1, pvalue of ST-DT in ns2 is ', p2$p.value))
+print(paste0('In exp1, pvalue of ST-DT in ns3 is ', p3$p.value))
+print(paste0('In exp1, pvalue of ST-DT in ns6 is ', p6$p.value))
+
+#plot 1 testing phase accuracy
+lineplt(te_df2, as.factor(ns), Cor_m, as.factor(dt),"Avg acc testing by condition (E1)","set size condition","Average accuracy")+ geom_errorbar(aes(ymin=Cor_m-Cor_se, ymax=Cor_m+Cor_se), width=.2,
+               position=position_dodge(0))+labs(color = "dt condition")+ylim(0,1)
+
+#plot 2 order effect
+df.order <- shapeMean(te_data2, 'block', 'subject')
+df.order <- shapeBoth(df.order, 'block')
+
+lineplt(df.order, block, Cor_m, NULL, "Order effect for testing (E1)","Block number","P(correct)")+geom_errorbar(aes(ymin=Cor_m-Cor_se, ymax=Cor_m+Cor_se), width=.2,
+               position=position_dodge(0.05)) 
+```
+
+```{r}
+# involves dplyr
+te_df <- shapeMean(te_data3, 'ns','dt', 'subject')
+te_df2 <- shapeBoth(te_df, 'ns','dt')
+attach(te_df)
+diff2 = te_df[which(ns==2&dt==0),]$Cor - te_df[which(ns==2&dt==1),]$Cor
+diff3 = te_df[which(ns==3&dt==0),]$Cor - te_df[which(ns==3&dt==1),]$Cor
+diff6 = te_df[which(ns==6&dt==0),]$Cor - te_df[which(ns==6&dt==1),]$Cor
+detach(te_df)
+p2 = t.test(diff2, mu=0, paired = F)
+p3 = t.test(diff3, mu=0, paired = F)
+p6 = t.test(diff6, mu=0, paired = F)
+
+print(paste0('In exp2, pvalue of ST-DT in ns2 is ', p2$p.value))
+print(paste0('In exp2, pvalue of ST-DT in ns3 is ', p3$p.value))
+print(paste0('In exp2, pvalue of ST-DT in ns6 is ', p6$p.value))
+#plot 1 testing phase accuracy
+lineplt(te_df2, as.factor(ns), Cor_m, as.factor(dt),"Avg acc testing by condition (E2)","set size condition","Average accuracy")+ geom_errorbar(aes(ymin=Cor_m-Cor_se, ymax=Cor_m+Cor_se), width=.2,
+               position=position_dodge(0))+labs(color = "dt condition")+ylim(0,1)
+
+#plot 2 order effect
+df.order <- shapeMean(te_data3, 'block', 'subject')
+df.order <- shapeBoth(df.order, 'block')
+
+lineplt(df.order, block, Cor_m, NULL, "Order effect for testing (E2)","Block number","P(correct)")+geom_errorbar(aes(ymin=Cor_m-Cor_se, ymax=Cor_m+Cor_se), width=.2, position=position_dodge(0.05)) 
+```
+
+```{r}
+# involves dplyr
+te_df <- shapeMean(te_data4, 'ns','dt', 'subject')
+te_df2 <- shapeBoth(te_df, 'ns','dt')
+attach(te_df)
+diff2 = te_df[which(ns==2&dt==0),]$Cor - te_df[which(ns==2&dt==1),]$Cor
+diff3 = te_df[which(ns==3&dt==0),]$Cor - te_df[which(ns==3&dt==1),]$Cor
+diff6 = te_df[which(ns==6&dt==0),]$Cor - te_df[which(ns==6&dt==1),]$Cor
+detach(te_df)
+p2 = t.test(diff2, mu=0, paired = F)
+p3 = t.test(diff3, mu=0, paired = F)
+p6 = t.test(diff6, mu=0, paired = F)
+
+print(paste0('In exp3, pvalue of ST-DT in ns2 is ', p2$p.value))
+print(paste0('In exp3, pvalue of ST-DT in ns3 is ', p3$p.value))
+print(paste0('In exp3, pvalue of ST-DT in ns6 is ', p6$p.value))
+#plot 1 testing phase accuracy
+lineplt(te_df2, as.factor(ns), Cor_m, as.factor(dt),"Avg acc testing by condition (E3)","set size condition","Average accuracy")+ geom_errorbar(aes(ymin=Cor_m-Cor_se, ymax=Cor_m+Cor_se), width=.2,
+               position=position_dodge(0))+labs(color = "dt condition")+ylim(0,1)
+
+#plot 2 order effect
+df.order <- shapeMean(te_data4, 'block', 'subject')
+df.order <- shapeBoth(df.order, 'block')
+
+lineplt(df.order, block, Cor_m, NULL, "Order effect for testing (E3)","Block number","P(correct)")+geom_errorbar(aes(ymin=Cor_m-Cor_se, ymax=Cor_m+Cor_se), width=.2,
+               position=position_dodge(0.05)) 
+```
+

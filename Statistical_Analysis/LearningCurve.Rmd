@@ -1,0 +1,151 @@
+---
+title: "Dual Task RLWM Learning Curve"
+author: "Ham Huang"
+date: "10/03/2019, @Berkeley"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include = TRUE}
+#somehow include = TRUE. The default False does not work.
+knitr::opts_chunk$set(echo = F, message = F, warning = F) #for knitting the script. echo = F to not show code, warning = FALSE to show no warnings
+```
+```{r}
+library(tidyverse)
+library(gridExtra)
+source("../func.R")#self-defined useful functions
+``` 
+```{r}
+#define some basic parameters
+numBlocks = 10 #but we have to take out the 10th block in analysis
+
+data2 = read.csv("cleaned-DT-RLWM-version2.csv")
+data3 = read.csv("cleaned-DT-RLWM-version3.csv")
+data4 = read.csv("../DT-RLWM-version4.csv")
+
+numSub2 = length(unique(data2$subject))
+numSub3 = length(unique(data3$subject))
+numSub4 = length(unique(data4$subject))
+```
+
+# Number task difference
+```{r}
+df = shapeMean(data4, 'subject', 'dt')
+numPerfDT = df[df$dt == 1,]$Cor_d
+numPerfTS = df[df$dt == 0,]$Cor_d
+t.test(numPerfDT, numPerfTS, paired = F)
+mean(numPerfDT, na.rm=T)
+mean(numPerfTS, na.rm=T)
+```
+
+```{r}
+df = shapeMean(data2, 'subject','ns','dt','numTrial')
+df1 = shapeBoth(df, 'ns', 'dt','numTrial')
+df1$setsize = as.factor(df1$ns)
+learningIm1 = lineplt(df1[which(df1$dt == 1),], numTrial, Cor_d_m, setsize, "Learning curve num task DT (E1)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_d_m - Cor_d_se, ymax=Cor_d_m + Cor_d_se, fill = setsize), alpha=0.2)+ylim(0.6,1)
+df = shapeMean(data3, 'subject','ns','dt','numTrial')
+df1 = shapeBoth(df, 'ns', 'dt','numTrial')
+df1$setsize = as.factor(df1$ns)
+learningIm2 = lineplt(df1[which(df1$dt == 1),], numTrial, Cor_d_m, setsize, "Learning curve num task DT (E2)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_d_m - Cor_d_se, ymax=Cor_d_m + Cor_d_se, fill = setsize), alpha=0.2)+ylim(0.6,1)
+learningIm1
+learningIm2
+grid.arrange(learningIm1, learningIm2, nrow = 2, ncol=1)
+df = shapeMean(data4, 'subject','ns','dt','numTrial')
+df1 = shapeBoth(df, 'ns', 'dt','numTrial')
+df1$setsize = as.factor(df1$ns)
+learningIm1 = lineplt(df1[which(df1$dt == 0),], numTrial, Cor_d_m, setsize, "Learning curve num task ST (E3)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_d_m - Cor_d_se, ymax=Cor_d_m + Cor_d_se, fill = setsize), alpha=0.2)+ylim(0.6,1)
+learningIm2 = lineplt(df1[which(df1$dt == 1),], numTrial, Cor_d_m, setsize, "Learning curve num task DT (E3)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_d_m - Cor_d_se, ymax=Cor_d_m + Cor_d_se, fill = setsize), alpha=0.2)+ylim(0.6,1)
+grid.arrange(learningIm1, learningIm2, nrow = 2, ncol=1)
+```
+
+
+
+# cosyne graph
+```{r}
+df = shapeMean(rbind(data2, data3, data4), 'subject','ns','dt','numTrial')
+df1 = shapeBoth(df, 'ns', 'dt','numTrial')
+df = shapeMean(data2, 'subject','ns','dt','numTrial')
+df2 = shapeBoth(df, 'ns', 'dt','numTrial')
+df = shapeMean(data3, 'subject','ns','dt','numTrial')
+df3 = shapeBoth(df, 'ns', 'dt','numTrial')
+df = shapeMean(data4, 'subject','ns','dt','numTrial')
+df4 = shapeBoth(df, 'ns', 'dt','numTrial')
+
+df1$setsize = as.factor(df1$ns)
+lineplt(df1[which(df1$dt == 1),], numTrial, Cor_m, setsize, "Learning curve dt", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_m - Cor_se, ymax=Cor_m + Cor_se, fill = setsize), alpha=0.2)+ylim(0.2,1)+xlim(0, 12)
+df2$setsize = as.factor(df2$ns)
+lineplt(df2[which(df2$dt == 0),], numTrial, Cor_m, setsize, "Learning curve st exp 1", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_m - Cor_se, ymax=Cor_m + Cor_se, fill = setsize), alpha=0.2)+ylim(0.2,1)+xlim(0, 12)
+df3$setsize = as.factor(df3$ns)
+lineplt(df3[which(df3$dt == 0),], numTrial, Cor_m, setsize, "Learning curve st exp 2", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_m - Cor_se, ymax=Cor_m + Cor_se, fill = setsize), alpha=0.2)+ylim(0.2,1)+xlim(0, 12)
+df4$setsize = as.factor(df4$ns)
+lineplt(df4[which(df4$dt == 0),], numTrial, Cor_m, setsize, "Learning curve st exp 3", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_m - Cor_se, ymax=Cor_m + Cor_se, fill = setsize), alpha=0.2)+ylim(0.2,1)+xlim(0, 12)
+```
+
+
+# Section 3: Learning Curve. 
+```{r}
+df = shapeMean(data2, 'subject','ns','dt','numTrial')
+df1 = shapeBoth(df, 'ns', 'dt','numTrial')
+df1$setsize = as.factor(df1$ns)
+
+learningDT = lineplt(df1[which(df1$dt == 1),], numTrial, Cor_m, setsize, "Learning curve dt (E1)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_m - Cor_se, ymax=Cor_m + Cor_se, fill = setsize), alpha=0.2)+ylim(0.2,1)
+
+learningST = lineplt(df1[which(df1$dt == 0),], numTrial, Cor_m, setsize, "Learning curve st (E1)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_m - Cor_se, ymax=Cor_m + Cor_se, fill = setsize), alpha=0.2)+ylim(0.2,1)
+
+reactionDT = lineplt(df1[which(df1$dt == 1),], numTrial, rt_m, setsize, "RT curve dt (E1)", "Trial iteration", "React Time (s)")+geom_ribbon(aes(ymin=rt_m - rt_se, ymax=rt_m + rt_se, fill = setsize), alpha=0.2)
+
+reactionST = lineplt(df1[which(df1$dt == 0),], numTrial, rt_m, setsize, "RT curve st (E1)", "Trial iteration", "React Time (s)")+geom_ribbon(aes(ymin=rt_m - rt_se, ymax=rt_m + rt_se, fill = setsize), alpha=0.2)
+
+learningIm1 = lineplt(df1[which(df1$dt == 1),], numTrial, Cor_d_m, setsize, "Learning curve num task DT (E1)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_d_m - Cor_d_se, ymax=Cor_d_m + Cor_d_se, fill = setsize), alpha=0.2)
+  
+reactionIm1 = lineplt(df1[which(df1$dt == 1),], numTrial, rt_d_m, setsize, "RT curve num task DT (E1)", "Trial iteration", "React Time (s)")+geom_ribbon(aes(ymin=rt_d_m - rt_d_se, ymax=rt_d_m + rt_d_se, fill = setsize), alpha=0.2)+ylim(0.55,0.85)
+
+grid.arrange(learningDT, learningST, reactionDT, reactionST,nrow = 2, ncol=2)
+grid.arrange(learningIm1, reactionIm1, nrow=2, ncol = 1)
+```
+```{r}
+df = shapeMean(data3, 'subject','ns','dt','numTrial')
+df1 = shapeBoth(df, 'ns', 'dt','numTrial')
+df1$setsize = as.factor(df1$ns)
+
+learningDT = lineplt(df1[which(df1$dt == 1),], numTrial, Cor_m, setsize, "Learning curve dt (E2)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_m - Cor_se, ymax=Cor_m + Cor_se, fill = setsize), alpha=0.2)+ylim(0.2,1)
+
+learningST = lineplt(df1[which(df1$dt == 0),], numTrial, Cor_m, setsize, "Learning curve st (E2)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_m - Cor_se, ymax=Cor_m + Cor_se, fill = setsize), alpha=0.2)+ylim(0.2,1)
+
+reactionDT = lineplt(df1[which(df1$dt == 1),], numTrial, rt_m, setsize, "RT curve dt (E2)", "Trial iteration", "React Time (s)")+geom_ribbon(aes(ymin=rt_m - rt_se, ymax=rt_m + rt_se, fill = setsize), alpha=0.2)
+
+reactionST = lineplt(df1[which(df1$dt == 0),], numTrial, rt_m, setsize, "RT curve st (E2)", "Trial iteration", "React Time (s)")+geom_ribbon(aes(ymin=rt_m - rt_se, ymax=rt_m + rt_se, fill = setsize), alpha=0.2)
+
+learningIm1 = lineplt(df1[which(df1$dt == 1),], numTrial, Cor_d_m, setsize, "Learning curve num task DT (E2)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_d_m - Cor_d_se, ymax=Cor_d_m + Cor_d_se, fill = setsize), alpha=0.2)
+  
+reactionIm1 = lineplt(df1[which(df1$dt == 1),], numTrial, rt_d_m, setsize, "RT curve num task DT (E2)", "Trial iteration", "React Time (s)")+geom_ribbon(aes(ymin=rt_d_m - rt_d_se, ymax=rt_d_m + rt_d_se, fill = setsize), alpha=0.2)+ylim(0.55,0.85)
+
+grid.arrange(learningDT, learningST, reactionDT, reactionST,nrow = 2, ncol=2)
+grid.arrange(learningIm1, reactionIm1, nrow=2, ncol = 1)
+```
+```{r}
+df = shapeMean(data4, 'subject','ns','dt','numTrial')
+df1 = shapeBoth(df, 'ns', 'dt','numTrial')
+df1$setsize = as.factor(df1$ns)
+
+learningDT = lineplt(df1[which(df1$dt == 1),], numTrial, Cor_m, setsize, "Learning curve dt (E3)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_m - Cor_se, ymax=Cor_m + Cor_se, fill = setsize), alpha=0.2)+ylim(0.2,1)
+
+learningST = lineplt(df1[which(df1$dt == 0),], numTrial, Cor_m, setsize, "Learning curve st (E3)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_m - Cor_se, ymax=Cor_m + Cor_se, fill = setsize), alpha=0.2)+ylim(0.2,1)
+
+reactionDT = lineplt(df1[which(df1$dt == 1),], numTrial, rt_m, setsize, "RT curve dt (E3)", "Trial iteration", "React Time (s)")+geom_ribbon(aes(ymin=rt_m - rt_se, ymax=rt_m + rt_se, fill = setsize), alpha=0.2)
+
+reactionST = lineplt(df1[which(df1$dt == 0),], numTrial, rt_m, setsize, "RT curve st (E3)", "Trial iteration", "React Time (s)")+geom_ribbon(aes(ymin=rt_m - rt_se, ymax=rt_m + rt_se, fill = setsize), alpha=0.2)
+
+learningIm1 = lineplt(df1[which(df1$dt == 1),], numTrial, Cor_d_m, setsize, "Learning curve num task DT (E3)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_d_m - Cor_d_se, ymax=Cor_d_m + Cor_d_se, fill = setsize), alpha=0.2)
+  
+reactionIm1 = lineplt(df1[which(df1$dt == 1),], numTrial, rt_d_m, setsize, "RT num task DT (E3)", "Trial iteration", "React Time (s)")+geom_ribbon(aes(ymin=rt_d_m - rt_d_se, ymax=rt_d_m + rt_d_se, fill = setsize), alpha=0.2)+ylim(0.55,0.85)
+
+learningIm0 = lineplt(df1[which(df1$dt == 0),], numTrial, Cor_d_m, setsize, "Learning curve num task ST (E3)", "Trial iteration", "P(correct)")+geom_ribbon(aes(ymin=Cor_d_m - Cor_d_se, ymax=Cor_d_m + Cor_d_se, fill = setsize), alpha=0.2)
+  
+reactionIm0 = lineplt(df1[which(df1$dt == 0),], numTrial, rt_d_m, setsize, "RT num task ST (E3)", "Trial iteration", "React Time (s)")+geom_ribbon(aes(ymin=rt_d_m - rt_d_se, ymax=rt_d_m + rt_d_se, fill = setsize), alpha=0.2)+ylim(0.55,0.85)
+
+grid.arrange(learningDT, learningST, reactionDT, reactionST,nrow = 2, ncol=2)
+grid.arrange(learningIm1, learningIm0, reactionIm1, reactionIm0, nrow=2, ncol = 2)
+```
+

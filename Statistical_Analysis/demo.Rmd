@@ -1,0 +1,58 @@
+---
+title: "Dual Task RLWM Demographic Information"
+author: "Ham Huang"
+date: "10/03/2019, @Berkeley"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include = TRUE}
+#somehow include = TRUE. The default False does not work.
+knitr::opts_chunk$set(echo = F, message = T, warning = F) #for knitting the script. echo = F to not show code, warning = FALSE to show no warnings
+```
+```{r}
+source("../func.R")#self-defined useful functions
+library(ggplot2)
+
+data2 = read.csv("demoV2.csv")
+#data2 = data2[-c(22,31,4),]
+data3 = read.csv("demoV3.csv")
+data3 = data3[-c(14), ]
+#data3 = data3[-c(14,5), ]
+data4 = read.csv("demoV4.csv")
+#data4 = data4[-c(21,10,17),]
+#data2 = data.frame(sapply(data2,  blank2na))
+#data3 = data.frame(sapply(data3,  blank2na))
+#data4 = data.frame(sapply(data4,  blank2na))
+```
+#Age
+```{r}
+summary(data2$Age)
+summary(data3$Age)
+summary(data4$Age)
+sd(data2$Age)
+sd(data3$Age)
+sd(data4$Age)
+```
+#Sex
+```{r}
+summary(data2$Sex)
+summary(data3$Sex)
+summary(data4$Sex)
+```
+#Ethnicity and Race
+```{r}
+summary(data2$Ethnicity)
+summary(data3$Ethnicity)
+summary(data4$Ethnicity)
+table(data2$Race)
+table(data3$Race)
+table(data4$Race)
+```
+#Handedness
+```{r}
+table(data2$handedness)
+table(data3$handedness)
+table(data4$handedness)
+```

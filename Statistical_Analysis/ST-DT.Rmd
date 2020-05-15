@@ -1,0 +1,109 @@
+---
+title: "Dual Task RLWM ST-DT"
+author: "Ham Huang"
+date: "10/03/2019, @Berkeley"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include = TRUE}
+#somehow include = TRUE. The default False does not work.
+knitr::opts_chunk$set(echo = F, message = F, warning = F) #for knitting the script. echo = F to not show code, warning = FALSE to show no warnings
+```
+```{r}
+#define some basic parameters
+numBlocks = 10 #but we have to take out the 10th block in analysis
+library(tidyverse)
+source("../func.R")#self-defined useful functions
+```
+```{r}
+data2 = read.csv("cleaned-DT-RLWM-version2.csv")
+data3 = read.csv("cleaned-DT-RLWM-version3.csv")
+data4 = read.csv("../DT-RLWM-version4.csv")
+
+
+numSub2 = length(unique(data2$subject))
+numSub3 = length(unique(data3$subject))
+numSub4 = length(unique(data4$subject))
+
+```
+
+# Section 3: Barplot of accuracy given number task is correct vs incorrect. 
+```{r}
+df0 = shapeMean(data2, 'subject','ns','dt')
+df_b = shapeBoth(df0, 'ns', 'dt') 
+
+barplt(df_b, as.factor(ns), Cor_m, as.factor(dt), 'Cor (E1)', 'ns', 'P(Cor)')+ geom_errorbar(aes(ymin=Cor_m-Cor_se, ymax=Cor_m+Cor_se), width=.2, position=position_dodge(.9))+labs(fill = "dt condition")
+
+df0_st =df0[which(df0$dt==0),]
+df0_dt =df0[which(df0$dt==1),]
+df0_st$diff = df0_st$Cor - df0_dt$Cor
+df_diff = shapeBoth(df0_st, 'ns')
+barplt(df_diff, as.factor(ns), diff_m, NULL, 'Cor ST-DT (E1)', 'ns', 'avg diff')+ geom_errorbar(aes(ymin=diff_m-diff_se, ymax=diff_m+diff_se), width=.2, position=position_dodge(.9))+ylim(-0.05,0.3)
+
+df_d2 = shapeBoth(df0, 'ns') 
+```
+```{r}
+df = shapeMean(data3, 'subject','ns','dt','numTrial')
+df0 = shapeMean(df, 'subject','ns','dt')
+
+df_b = shapeBoth(df0, 'ns', 'dt') 
+barplt(df_b, as.factor(ns), Cor_m, as.factor(dt), 'Cor (E2)', 'ns', 'P(Cor)')+ geom_errorbar(aes(ymin=Cor_m-Cor_se, ymax=Cor_m+Cor_se), width=.2, position=position_dodge(.9))+labs(fill = "dt condition")
+
+df0_st =df0[which(df0$dt==0),]
+df0_dt =df0[which(df0$dt==1),]
+df0_st$diff = df0_st$Cor - df0_dt$Cor
+df_diff = shapeBoth(df0_st, 'ns')
+barplt(df_diff, as.factor(ns), diff_m, NULL, 'Cor ST-DT (E2)', 'ns', 'avg diff')+ geom_errorbar(aes(ymin=diff_m-diff_se, ymax=diff_m+diff_se), width=.2, position=position_dodge(.9))+ylim(-0.05,0.3)
+
+df_d3 = shapeBoth(df0, 'ns') 
+```
+```{r}
+df = shapeMean(data4, 'subject','ns','dt','numTrial')
+df0 = shapeMean(df, 'subject','ns','dt')
+
+df_b = shapeBoth(df0, 'ns', 'dt') 
+barplt(df_b, as.factor(ns), Cor_m, as.factor(dt), 'Cor (E3)', 'ns', 'P(Cor)')+ geom_errorbar(aes(ymin=Cor_m-Cor_se, ymax=Cor_m+Cor_se), width=.2, position=position_dodge(.9))+labs(fill = "dt condition")
+
+df0_st =df0[which(df0$dt==0),]
+df0_dt =df0[which(df0$dt==1),]
+df0_st$diff = df0_st$Cor - df0_dt$Cor
+df_diff = shapeBoth(df0_st, 'ns')
+barplt(df_diff, as.factor(ns), diff_m, NULL, 'Cor ST-DT (E3)', 'ns', 'avg diff')+ geom_errorbar(aes(ymin=diff_m-diff_se, ymax=diff_m+diff_se), width=.2, position=position_dodge(.9))+ylim(-0.05,0.3)
+
+df_d4 = df_b 
+```
+
+# t test of DT effect
+```{r}
+data4 = data4[data4$numTrial!=13,]
+df = shapeMean(data4, 'subject','ns','dt','numTrial')%>% select(subject,ns,dt,numTrial,Cor) 
+
+df1 = df %>%
+    group_by(subject, ns, numTrial) %>%
+    summarise(diff = Cor[dt==0]- Cor[dt==1])
+
+df1 = shapeBoth(df1, 'subject')
+  
+t.test(df1$diff_m, mu=0, paired = F)
+
+```
+
+# Num Task
+```{r}
+df = data.frame("Cor_d_m" = c(df_d2$Cor_d_m, df_d3$Cor_d_m, df_d4$Cor_d_m))
+df$Cor_d_se = c(df_d2$Cor_d_se, df_d3$Cor_d_se, df_d4$Cor_d_se)
+df$ns = c(df_d2$ns, df_d3$ns, df_d4$ns)
+df$condition = c(rep(c('E1', 'E2'),each=3),rep(c('E3st', 'E3dt'), times = 3))
+
+lineplt(df[which(df$condition == 'E1'),], as.factor(ns), Cor_d_m, "",'num Task Performance', 'ns', 'P(correct)')+ geom_errorbar(aes(ymin=Cor_d_m-Cor_d_se, ymax=Cor_d_m+Cor_d_se), width=.2,
+               position=position_dodge(0))+ylim(0.75,0.9)
+
+lineplt(df[which(df$condition == 'E1' | df$condition == 'E2'),], as.factor(ns), Cor_d_m, condition,'num Task Performance', 'ns', 'P(correct)')+ geom_errorbar(aes(ymin=Cor_d_m-Cor_d_se, ymax=Cor_d_m+Cor_d_se), width=.2,
+               position=position_dodge(0))+ylim(0.75,0.9)
+
+lineplt(df[which(df$condition == 'E3st' | df$condition == 'E3dt'),], as.factor(ns), Cor_d_m, condition,'num Task Performance', 'ns', 'P(correct)')+ geom_errorbar(aes(ymin=Cor_d_m-Cor_d_se, ymax=Cor_d_m+Cor_d_se), width=.2,
+               position=position_dodge(0))+ylim(0.75,0.9)
+```
+

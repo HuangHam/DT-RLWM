@@ -1,0 +1,706 @@
+---
+title: "Dual Task RLWM Logistic Regression"
+author: "Ham Huang"
+date: "12/22/2019, @Berkeley"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include = TRUE}
+#somehow include = TRUE. The default False does not work.
+knitr::opts_chunk$set(echo = F, message = F, warning = F) #for knitting the script. echo = F to not show code, warning = FALSE to show no warnings
+```
+```{r}
+library(tidyverse)
+source("../func.R")#self-defined useful functions
+#define some basic parameters
+numBlocks = 10 #but we have to take out the 10th block in analysis
+data4 = read.csv("../DT-RLWM-version4.csv")
+te.data4 = read.csv("cleaned-DT-RLWM-version4-te.csv")
+data.asym = shapeMean(data4[data4$numTrial %in% c(10,11,12), ],'ns','dt', 'subject') %>%rename(Cor_asy = Cor)
+te.data4 = te.data4 %>%
+  inner_join(data.asym, by = c("subject", "dt", "ns"))
+numSub4 = length(unique(data4$subject))
+```
+# Mixed-effect logistic Regression learning
+### dt as continuous
+```{r}
+#scale the veriables of concern
+df_logis = data4%>% mutate_at(c('dt','ns', 'delay', 'Cor_cum'), scale)
+
+#model fitting (w/o and w/ interaction)
+mod_main_le = lme4::glmer(Cor ~ dt + ns + delay + Cor_cum + (1|subject), data = df_logis, family = binomial)
+mod_inter_le = lme4::glmer(Cor ~ dt*ns*delay*Cor_cum + (1|subject), data = df_logis,family = binomial)
+anova(mod_main_le, mod_inter_le)
+#store summary
+sum_main_le = summary(mod_main_le)
+sum_inter_le = summary(mod_inter_le)
+
+#turn model coefficients into a dataset
+(coef_main_le=rownames_to_column(as.data.frame(sum_main_le$coefficients)))
+(coef_inter_le=rownames_to_column(as.data.frame(sum_inter_le$coefficients)))
+
+#change column name
+colnames(coef_main_le) = c("rowname", "Estimate", "se", "z","P")
+colnames(coef_inter_le) = c("rowname", "Estimate", "se", "z","P")
+#plotting
+reg1 = barplt(coef_main_le, as.factor(rowname), Estimate, NULL,
+              'Main Model','predictors','coefficients') +
+  geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),
+                width=.2, position=position_dodge(.9))
+reg2 = barplt(coef_inter_le, as.factor(rowname), Estimate, NULL,
+              'Interaction Model','predictors','coefficients') +
+  geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),
+                width=.2,position=position_dodge(.9))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+gridExtra::grid.arrange(reg1, reg2,ncol= 2, bottom = "Figure 3: Coefficients of Two Models Learning")
+
+for (i in 1:nrow(coef_main_le)){
+  print(paste0('In exp3, two-tail pvalue of ', coef_main_le$rowname[i],' is ', coef_main_le$P[i]))
+  if (coef_main_le$P[i] <= 0.05){
+    print('it is significant')
+  }
+}
+for (i in 1:nrow(coef_inter_le)){
+  print(paste0('In exp3, two-tail pvalue of ', coef_inter_le$rowname[i],' is ', coef_inter_le$P[i]))
+  if (coef_inter_le$P[i] <= 0.05){
+    print('it is significant')
+  }
+}
+
+```
+<!--### dt as categorical
+```{r eval=FALSE, include=FALSE}
+#scale the veriables of concern
+df_logis = data4%>% mutate_at(c('ns', 'delay', 'Cor_cum'), scale)
+
+#model fitting (w/o and w/ interaction)
+mod_main_le = lme4::glmer(Cor ~ dt + ns + delay + Cor_cum + (1|subject), data = df_logis, family = binomial)
+mod_inter_le = lme4::glmer(Cor ~ dt + ns + delay + Cor_cum+dt*ns+dt*delay+dt*Cor_cum +ns*delay+ns*Cor_cum+delay*Cor_cum+ (1|subject), data = df_logis,family = binomial)
+
+#store summary
+sum_main_le = summary(mod_main_le)
+sum_inter_le = summary(mod_inter_le)
+
+#turn model coefficients into a dataset
+coef_main_le=rownames_to_column(as.data.frame(sum_main_le$coefficients))
+coef_inter_le=rownames_to_column(as.data.frame(sum_inter_le$coefficients))
+
+#change column name
+colnames(coef_main_le) = c("rowname", "Estimate", "se", "z","P")
+colnames(coef_inter_le) = c("rowname", "Estimate", "se", "z","P")
+#plotting
+reg1 = barplt(coef_main_le, as.factor(rowname), Estimate, NULL,
+              'Main Model','predictors','coefficients') +
+  geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),
+                width=.2, position=position_dodge(.9))
+reg2 = barplt(coef_inter_le, as.factor(rowname), Estimate, NULL,
+              'Interaction Model','predictors','coefficients') +
+  geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),
+                width=.2,position=position_dodge(.9))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+gridExtra::grid.arrange(reg1, reg2,ncol= 2, bottom = "Figure 3: Coefficients of Two Models Learning")
+
+for (i in 1:nrow(coef_main_le)){
+  print(paste0('In exp3, two-tail pvalue of ', coef_main_le$rowname[i],' is ', coef_main_le$P[i]))
+  if (coef_main_le$P[i] <= 0.05){
+    print('it is significant')
+  }
+}
+for (i in 1:nrow(coef_inter_le)){
+  print(paste0('In exp3, two-tail pvalue of ', coef_inter_le$rowname[i],' is ', coef_inter_le$P[i]))
+  if (coef_inter_le$P[i] <= 0.05){
+    print('it is significant')
+  }
+}
+```
+The mixed effect model captures the same trend. The main effect of delay in the interaction model has a reversed direction however.-->
+
+# Mixed-effect logistic Regression testing
+### dt as continuous
+```{r}
+#scale the veriables of concern
+df_logis = te.data4%>% mutate_at(c('dt','ns', 'Cor_asy'), scale)
+
+#model fitting (w/o and w/ interaction)
+mod_main_le = lme4::glmer(Cor ~ dt + ns + Cor_asy + (1|subject), data = df_logis, family = binomial)
+mod_inter_le = lme4::glmer(Cor ~ dt*ns*Cor_asy + (1|subject), data = df_logis,family = binomial)
+
+#store summary
+sum_main_le = summary(mod_main_le)
+sum_inter_le = summary(mod_inter_le)
+
+#turn model coefficients into a dataset
+(coef_main_le=rownames_to_column(as.data.frame(sum_main_le$coefficients)))
+(coef_inter_le=rownames_to_column(as.data.frame(sum_inter_le$coefficients)))
+
+#change column name
+colnames(coef_main_le) = c("rowname", "Estimate", "se", "z","Pr(>|z|)")
+colnames(coef_inter_le) = c("rowname", "Estimate", "se", "z","Pr(>|z|)")
+#plotting
+reg1 = barplt(coef_main_le, as.factor(rowname), Estimate, NULL,
+              'Main Model','predictors','coefficients') +
+  geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),
+                width=.2, position=position_dodge(.9))
+reg2 = barplt(coef_inter_le, as.factor(rowname), Estimate, NULL,
+              'Interaction Model','predictors','coefficients') +
+  geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),
+                width=.2,position=position_dodge(.9))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+gridExtra::grid.arrange(reg1, reg2,ncol= 2, bottom = "Figure 3: Coefficients of Two Models Testing")
+for (i in 1:nrow(coef_main_le)){
+  print(paste0('In exp3, two-tail pvalue of ', coef_main_le$rowname[i],' is ', coef_main_le$P[i]))
+  if (coef_main_le$P[i] <= 0.05){
+    print('it is significant')
+  }
+}
+for (i in 1:nrow(coef_inter_le)){
+  print(paste0('In exp3, two-tail pvalue of ', coef_inter_le$rowname[i],' is ', coef_inter_le$P[i]))
+  if (coef_inter_le$P[i] <= 0.05){
+    print('it is significant')
+  }
+}
+```
+<!--### dt as categorical
+```{r eval=FALSE, include=FALSE}
+#scale the veriables of concern
+df_logis = te.data4%>% mutate_at(c('ns', 'Cor_asy'), scale)
+
+#model fitting (w/o and w/ interaction)
+mod_main_le = lme4::glmer(Cor ~ dt + ns + Cor_asy + (1|subject), data = df_logis, family = binomial)
+mod_inter_le = lme4::glmer(Cor ~ dt + ns + Cor_asy+dt*ns+dt*Cor_asy+ns*Cor_asy+ns*dt*Cor_asy+ (1|subject), data = df_logis,family = binomial)
+
+#store summary
+sum_main_le = summary(mod_main_le)
+sum_inter_le = summary(mod_inter_le)
+
+#turn model coefficients into a dataset
+coef_main_le=rownames_to_column(as.data.frame(sum_main_le$coefficients))
+coef_inter_le=rownames_to_column(as.data.frame(sum_inter_le$coefficients))
+
+#change column name
+colnames(coef_main_le) = c("rowname", "Estimate", "se", "z","Pr(>|z|)")
+colnames(coef_inter_le) = c("rowname", "Estimate", "se", "z","Pr(>|z|)")
+#plotting
+reg1 = barplt(coef_main_le, as.factor(rowname), Estimate, NULL,
+              'Main Model','predictors','coefficients') +
+  geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),
+                width=.2, position=position_dodge(.9))
+reg2 = barplt(coef_inter_le, as.factor(rowname), Estimate, NULL,
+              'Interaction Model','predictors','coefficients') +
+  geom_errorbar(aes(ymin=Estimate-se, ymax=Estimate+se),
+                width=.2,position=position_dodge(.9))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+gridExtra::grid.arrange(reg1, reg2,ncol= 2, bottom = "Figure 3: Coefficients of Two Models Testing")
+for (i in 1:nrow(coef_main_le)){
+  print(paste0('In exp3, two-tail pvalue of ', coef_main_le$rowname[i],' is ', coef_main_le$P[i]))
+  if (coef_main_le$P[i] <= 0.05){
+    print('it is significant')
+  }
+}
+for (i in 1:nrow(coef_inter_le)){
+  print(paste0('In exp3, two-tail pvalue of ', coef_inter_le$rowname[i],' is ', coef_inter_le$P[i]))
+  if (coef_inter_le$P[i] <= 0.05){
+    print('it is significant')
+  }
+}
+```
+The mixed effect model in testing shows a different result. However, the effect of dt is still the largest.-->
+
+<!--# Logistic Regression Learning sigmoid transform. 
+### Big questions upfront:
+1. Should we really scale dt or ns if they are categorical variables? Maybe we should still treat dt as categorical if not ns? it makes coefficient interpretation quit difficult to my opinion.
+2. What is the point of having Cor_cum anyways? It for sure is a great predictor but does not really add anything theoretically interesting.
+3. Should we really fit logistic regression person by person than using the mixed-effect model? Does the latter make bad assumptions? -->
+
+<!--### Treat dt continuous
+```{r}
+# coeffs1 = data.frame(matrix(ncol = 5, nrow = numSub4))
+# colnames(coeffs1) = c('intercept', 'dt','ns', 'delay','Cor_cum') #order of variable names must match order of predictors in the glm model.
+# coeffs2 = data.frame(matrix(ncol = 11, nrow = numSub4))
+# colnames(coeffs2) = c('intercept', 'dt','ns', 'delay','Cor_cum','dt*ns', 'dt*delay','dt*Cor_cum','ns*delay','ns*Cor_cum','delay*Cor_cum')
+# 
+# for (sub in 1:numSub4){
+#   df_logis = data4[data4$subject == sub, ]%>% mutate_at(c('dt','ns', 'delay', 'Cor_cum'), scale) #z score these four columns
+#   glm.fit1 = glm(Cor ~ dt + ns + delay + Cor_cum, data = df_logis, family = binomial, maxit = 500)
+#   summ1 = summary(glm.fit1)
+#   coeffs1[sub, ] = summ1$coefficients[,1]
+#   glm.fit2 = glm(Cor ~ dt + ns + delay + Cor_cum+dt*ns+dt*delay+dt*Cor_cum +ns*delay+ns*Cor_cum+delay*Cor_cum, data = df_logis, family = binomial, maxit = 500)
+#   summ2 = summary(glm.fit2)
+#   coeffs2[sub, ] = summ2$coefficients[,1]
+# }
+# df_logis1 = shapeBoth(gather(as.data.frame(sapply(coeffs1, sigTrans)), factor_key = T), 'key') 
+# df_logis2 = shapeBoth(gather(as.data.frame(sapply(coeffs2, sigTrans)), factor_key = T), 'key')  
+#   
+# reg1m = barplt(df_logis1, as.factor(key), m, NULL, 'logis reg w/o interaction (E3)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,
+#                position=position_dodge(.9))
+# 
+# reg2m = barplt(df_logis2, as.factor(key), m, NULL, 'logis reg w/ interaction (E3)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,position=position_dodge(.9))+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# 
+# reg1sd = barplt(df_logis1, as.factor(key), sd, NULL, 'logis reg w/o interaction sd (E3)','predictors','coefficients') 
+# reg2sd = barplt(df_logis2, as.factor(key), sd, NULL, 'logis reg w/ interaction sd (E3)','predictors','coefficients') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# 
+# ttest(coeffs1, T)
+# #ttest(coeffs1, F)
+# ttest(coeffs2, T)
+# #ttest(coeffs2, F)
+# grid.arrange(reg1m, reg2m, ncol=2)
+# grid.arrange(reg1sd, reg2sd, ncol=2)
+# df_logis1
+# df_logis2
+```
+
+### Treat dt categorial
+
+```{r eval=FALSE, include=FALSE}
+coeffs1 = data.frame(matrix(ncol = 5, nrow = numSub4))
+colnames(coeffs1) = c('intercept', 'dt','ns', 'delay','Cor_cum') #order of variable names must match order of predictors in the glm model.
+coeffs2 = data.frame(matrix(ncol = 11, nrow = numSub4))
+colnames(coeffs2) = c('intercept', 'dt','ns', 'delay','Cor_cum','dt*ns', 'dt*delay','dt*Cor_cum','ns*delay','ns*Cor_cum','delay*Cor_cum')
+
+for (sub in 1:numSub4){
+  df_logis = data4[data4$subject == sub, ]%>% mutate_at(c('ns', 'delay', 'Cor_cum'), scale) #z score these four columns
+  glm.fit1 = glm(Cor ~ dt + ns + delay + Cor_cum, data = df_logis, family = binomial, maxit = 500)
+  summ1 = summary(glm.fit1)
+  coeffs1[sub, ] = summ1$coefficients[,1]
+  glm.fit2 = glm(Cor ~ dt + ns + delay + Cor_cum+dt*ns+dt*delay+dt*Cor_cum +ns*delay+ns*Cor_cum+delay*Cor_cum, data = df_logis, family = binomial, maxit = 500)
+  summ2 = summary(glm.fit2)
+  coeffs2[sub, ] = summ2$coefficients[,1]
+}
+df_logis1 = shapeBoth(gather(as.data.frame(sapply(coeffs1, sigTrans)), factor_key = T), 'key') 
+df_logis2 = shapeBoth(gather(as.data.frame(sapply(coeffs2, sigTrans)), factor_key = T), 'key')  
+  
+reg1 = barplt(df_logis1, as.factor(key), m, NULL, 'logis reg w/o interaction (E3)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,
+               position=position_dodge(.9))
+
+reg2 = barplt(df_logis2, as.factor(key), m, NULL, 'logis reg w/ interaction (E3)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,position=position_dodge(.9))+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ttest(coeffs1, T)
+#ttest(coeffs1, F)
+ttest(coeffs2, T)
+#ttest(coeffs2, F)
+grid.arrange(reg1, reg2, ncol=2)
+```
+
+In the main effect model, the effects are as expected. In the interaction model, we see a positive interaction in the dt*ns condition.
+
+
+# Logistic Regression Testing with sigmoid transform
+
+### treat dt continuous
+```{r eval=FALSE, include=FALSE}
+coeffs1 = data.frame(matrix(ncol = 4, nrow = numSub4))
+colnames(coeffs1) = c('intercept', 'dt','ns', 'Cor_asy') #order of variable names must match order of predictors in the glm model.
+coeffs2 = data.frame(matrix(ncol = 5, nrow = numSub4))
+colnames(coeffs2) = c('intercept', 'dt','ns', 'Cor_asy','dt*ns')
+
+for (sub in 1:numSub4){
+  df_logis = te.data4[te.data4$subject == sub, ]%>% mutate_at(c('dt','ns', 'Cor_asy'), scale) #z score these four columns
+  glm.fit1 = glm(Cor ~ dt + ns + Cor_asy, data = df_logis, family = binomial, maxit = 500)
+  summ1 = summary(glm.fit1)
+  coeffs1[sub,] = summ1$coefficients[,1]
+
+  glm.fit2 = glm(Cor ~ dt + ns + Cor_asy+dt*ns, data = df_logis, family = binomial, maxit = 500)
+  summ2 = summary(glm.fit2)
+  coeffs2[sub,] = summ2$coefficients[,1]
+}
+df_logis1 = shapeBoth(gather(as.data.frame(sapply(coeffs1, sigTrans)), factor_key = T), 'key') 
+df_logis2 = shapeBoth(gather(as.data.frame(sapply(coeffs2, sigTrans)), factor_key = T), 'key')  
+  
+reg1m = barplt(df_logis1, as.factor(key), m, NULL, 'logis reg w/o interaction (E3)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,
+               position=position_dodge(.9))
+
+reg2m = barplt(df_logis2, as.factor(key), m, NULL, 'logis reg w/ interaction (E3)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,position=position_dodge(.9))+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+reg1sd = barplt(df_logis1, as.factor(key), sd, NULL, 'logis reg w/o interaction sd (E3)','predictors','coefficients') 
+reg2sd = barplt(df_logis2, as.factor(key), sd, NULL, 'logis reg w/ interaction sd (E3)','predictors','coefficients') + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ttest(coeffs1, T)
+#ttest(coeffs1, F)
+ttest(coeffs2, T)
+#ttest(coeffs2, F)
+```
+
+The plotted mean is
+```{r}
+grid.arrange(reg1m, reg2m, ncol=2)
+```
+
+The plotted standard deviation is
+```{r}
+grid.arrange(reg1sd, reg2sd, ncol=2)
+```
+
+The table for main effect model is
+```{r}
+df_logis1
+```
+
+The table for interaction effect model is
+```{r}
+df_logis2
+```
+-->
+<!--### treat dt categorical
+```{r eval=FALSE, include=FALSE}
+coeffs1 = data.frame(matrix(ncol = 4, nrow = numSub4))
+colnames(coeffs1) = c('intercept', 'dt','ns', 'Cor_asy') #order of variable names must match order of predictors in the glm model.
+coeffs2 = data.frame(matrix(ncol = 5, nrow = numSub4))
+colnames(coeffs2) = c('intercept', 'dt','ns', 'Cor_asy','dt*ns')
+
+for (sub in 1:numSub4){
+  df_logis = te.data4[te.data4$subject == sub, ]%>% mutate_at(c('ns', 'Cor_asy'), scale) #z score these four columns
+  glm.fit1 = glm(Cor ~ dt + ns + Cor_asy, data = df_logis, family = binomial, maxit = 500)
+  summ1 = summary(glm.fit1)
+  coeffs1[sub,] = summ1$coefficients[,1]
+
+  glm.fit2 = glm(Cor ~ dt + ns + Cor_asy+dt*ns, data = df_logis, family = binomial, maxit = 500)
+  summ2 = summary(glm.fit2)
+  coeffs2[sub,] = summ2$coefficients[,1]
+}
+df_logis1 = shapeBoth(gather(as.data.frame(sapply(coeffs1, sigTrans)), factor_key = T), 'key') 
+df_logis2 = shapeBoth(gather(as.data.frame(sapply(coeffs2, sigTrans)), factor_key = T), 'key')  
+  
+reg1 = barplt(df_logis1, as.factor(key), m, NULL, 'logis reg w/o interaction testing (E3)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,
+               position=position_dodge(.9))
+
+reg2 = barplt(df_logis2, as.factor(key), m, NULL, 'logis reg w/ interaction testing (E3)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,position=position_dodge(.9))+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ttest(coeffs1, T)
+#ttest(coeffs1, F)
+ttest(coeffs2, T)
+#ttest(coeffs2, F)
+grid.arrange(reg1, reg2, ncol=2)
+```
+In testing, their is only a dt effect. There is no significant interaction effect.
+
+# t-tests on trial difference in dt across subjects:
+
+First, we average the correctness score for each subject, each DT condition, and each trial. Then we use the averaged correctness score, i.e. P(correct) in st to substract the corresponding P(correct) in dt. Now with have the difference for each trial in each subject, we average across trials for each subject. We then run t-test against 0 on this array which has the same length as the number of subjects. One two tailed t-test, one one tailed. All unpaired because it's an unpaired array between subjects.
+```{r}
+dfdt = shapeMean(data2, 'subject', 'dt', 'numTrial')
+dfDT = dcast(dfdt, subject + numTrial ~ dt, value.var = "Cor")
+dfDT$diff01 = dfDT$'0' - dfDT$'1'
+dfdt = shapeMean(dfDT, 'subject')
+diff = t.test(dfdt$diff01, mu=0, paired = F)
+diffG = t.test(dfdt$diff01, mu=0, alternative = 'greater',  paired = F)
+print(paste0('In exp1, the pvalue of st is different from dt is ', diff$p.value))
+print(paste0('the exp1, pvalue of st is greater than dt is ', diffG$p.value))
+```
+```{r}
+dfdt = shapeMean(data4, 'subject', 'dt', 'numTrial')
+dfDT = dcast(dfdt, subject + numTrial ~ dt, value.var = "Cor")
+dfDT$diff01 = dfDT$'0' - dfDT$'1'
+dfdt = shapeMean(dfDT, 'subject')
+diff = t.test(dfdt$diff01, mu=0, paired = F)
+diffG = t.test(dfdt$diff01, mu=0, alternative = 'greater',  paired = F)
+print(paste0('In exp2, the pvalue of st is different from dt is ', diff$p.value))
+print(paste0('the exp2, pvalue of st is greater than dt is ', diffG$p.value))
+```
+```{r}
+dfdt = shapeMean(data4, 'subject', 'dt', 'numTrial')
+dfDT = dcast(dfdt, subject + numTrial ~ dt, value.var = "Cor")
+dfDT$diff01 = dfDT$'0' - dfDT$'1'
+dfdt = shapeMean(dfDT, 'subject')
+diff = t.test(dfdt$diff01, mu=0, paired = F)
+diffG = t.test(dfdt$diff01, mu=0, alternative = 'greater',  paired = F)
+print(paste0('In exp3, the pvalue of st is different from dt is ', diff$p.value))
+print(paste0('the exp3, pvalue of st is greater than dt is ', diffG$p.value))
+```
+
+From the above result, we see that the DT main effect on the probability of correctness is highly significant across different versions of the experiment. It is nonetheless more so in the earlier version because the two conditions are more different.
+
+# t-tests on trial difference in ST across subjects:
+The same as in the previous section but between each pair of set size in the single task condition.
+```{r}
+dfns = shapeMean(data2[which(data2$dt==0), ], 'subject', 'ns', 'numTrial')
+dfNS = dcast(dfns, subject + numTrial ~ ns, value.var = "Cor")
+dfNS$diff23 = dfNS$'2' - dfNS$'3'
+dfNS$diff36 = dfNS$'3' - dfNS$'6'
+dfNS$diff26 = dfNS$'2' - dfNS$'6'
+dfns = shapeMean(dfNS, 'subject')
+
+diff23 = t.test(dfns$diff23, mu=0, paired = F)
+diff23G = t.test(dfns$diff23, mu=0, alternative = 'greater',paired = F)
+diff36 = t.test(dfns$diff36, mu=0, paired = F)
+diff36G = t.test(dfns$diff36, mu=0, alternative = 'greater', paired = F)
+diff26 = t.test(dfns$diff26, mu=0, paired = F)
+diff26G = t.test(dfns$diff26, mu=0, alternative = 'greater',paired = F)
+
+print(paste0('In exp1, the pvalue of ns=2 is different from ns=3 in ST is ', diff23$p.value))
+print(paste0('the exp1, pvalue of ns=2 is greater than ns=3 in ST is ', diff23G$p.value))
+print(paste0('In exp1, the pvalue of ns=3 is different from ns=6 in ST is ', diff36$p.value))
+print(paste0('the exp1, pvalue of ns=3 is greater than ns=6 in ST is ', diff36G$p.value))
+print(paste0('In exp1, the pvalue of ns=2 is different from ns=6 in ST is ', diff26$p.value))
+print(paste0('the exp1, pvalue of ns=2 is greater than ns=6 in ST is ', diff26G$p.value))
+```
+```{r eval=FALSE, include=FALSE}
+dfns = shapeMean(data4[which(data3$dt==0), ], 'subject', 'ns', 'numTrial')
+dfNS = dcast(dfns, subject + numTrial ~ ns, value.var = "Cor")
+dfNS$diff23 = dfNS$'2' - dfNS$'3'
+dfNS$diff36 = dfNS$'3' - dfNS$'6'
+dfNS$diff26 = dfNS$'2' - dfNS$'6'
+dfns = shapeMean(dfNS, 'subject')
+
+diff23 = t.test(dfns$diff23, mu=0, paired = F)
+diff23G = t.test(dfns$diff23, mu=0, alternative = 'greater',paired = F)
+diff36 = t.test(dfns$diff36, mu=0, paired = F)
+diff36G = t.test(dfns$diff36, mu=0, alternative = 'greater', paired = F)
+diff26 = t.test(dfns$diff26, mu=0, paired = F)
+diff26G = t.test(dfns$diff26, mu=0, alternative = 'greater',paired = F)
+
+print(paste0('In exp2, the pvalue of ns=2 is different from ns=3 in ST is ', diff23$p.value))
+print(paste0('the exp2, pvalue of ns=2 is greater than ns=3 in ST is ', diff23G$p.value))
+print(paste0('In exp2, the pvalue of ns=3 is different from ns=6 in ST is ', diff36$p.value))
+print(paste0('the exp2, pvalue of ns=3 is greater than ns=6 in ST is ', diff36G$p.value))
+print(paste0('In exp2, the pvalue of ns=2 is different from ns=6 in ST is ', diff26$p.value))
+print(paste0('the exp2, pvalue of ns=2 is greater than ns=6 in ST is ', diff26G$p.value))
+
+```
+```{r eval=FALSE, include=FALSE}
+dfns = shapeMean(data4[which(data4$dt==0), ], 'subject', 'ns', 'numTrial')
+dfNS = dcast(dfns, subject + numTrial ~ ns, value.var = "Cor")
+dfNS$diff23 = dfNS$'2' - dfNS$'3'
+dfNS$diff36 = dfNS$'3' - dfNS$'6'
+dfNS$diff26 = dfNS$'2' - dfNS$'6'
+dfns = shapeMean(dfNS, 'subject')
+
+diff23 = t.test(dfns$diff23, mu=0, paired = F)
+diff23G = t.test(dfns$diff23, mu=0, alternative = 'greater',paired = F)
+diff36 = t.test(dfns$diff36, mu=0, paired = F)
+diff36G = t.test(dfns$diff36, mu=0, alternative = 'greater', paired = F)
+diff26 = t.test(dfns$diff26, mu=0, paired = F)
+diff26G = t.test(dfns$diff26, mu=0, alternative = 'greater',paired = F)
+
+print(paste0('In exp3, the pvalue of ns=2 is different from ns=3 in ST is ', diff23$p.value))
+print(paste0('the exp3, pvalue of ns=2 is greater than ns=3 in ST is ', diff23G$p.value))
+print(paste0('In exp3, the pvalue of ns=3 is different from ns=6 in ST is ', diff36$p.value))
+print(paste0('the exp3, pvalue of ns=3 is greater than ns=6 in ST is ', diff36G$p.value))
+print(paste0('In exp3, the pvalue of ns=2 is different from ns=6 in ST is ', diff26$p.value))
+print(paste0('the exp3, pvalue of ns=2 is greater than ns=6 in ST is ', diff26G$p.value))
+```
+The t-test confirms our intuition about the learning curve. In experiment one, all p value are greater than 0.05 except the one-trailed test on ns=3 vs ns=6. The p-value is nonetheless still as high as 0.027. In the other experiments, it is clear that ns=2 and ns=3 are not significantly different from each other but they are from ns=6.
+
+# t-tests on trial difference in DT across subjects:
+```{r }
+dfns = shapeMean(data2[which(data2$dt==1), ], 'subject', 'ns', 'numTrial')
+dfNS = dcast(dfns, subject + numTrial ~ ns, value.var = "Cor")
+dfNS$diff23 = dfNS$'2' - dfNS$'3'
+dfNS$diff36 = dfNS$'3' - dfNS$'6'
+dfNS$diff26 = dfNS$'2' - dfNS$'6'
+dfns = shapeMean(dfNS, 'subject')
+
+diff23 = t.test(dfns$diff23, mu=0, paired = F)
+diff23G = t.test(dfns$diff23, mu=0, alternative = 'greater',paired = F)
+diff36 = t.test(dfns$diff36, mu=0, paired = F)
+diff36G = t.test(dfns$diff36, mu=0, alternative = 'greater', paired = F)
+diff26 = t.test(dfns$diff26, mu=0, paired = F)
+diff26G = t.test(dfns$diff26, mu=0, alternative = 'greater',paired = F)
+
+print(paste0('In exp1, the pvalue of ns=2 is different from ns=3 in DT is ', diff23$p.value))
+print(paste0('the exp1, pvalue of ns=2 is greater than ns=3 in DT is ', diff23G$p.value))
+print(paste0('In exp1, the pvalue of ns=3 is different from ns=6 in DT is ', diff36$p.value))
+print(paste0('the exp1, pvalue of ns=3 is greater than ns=6 in DT is ', diff36G$p.value))
+print(paste0('In exp1, the pvalue of ns=2 is different from ns=6 in DT is ', diff26$p.value))
+print(paste0('the exp1, pvalue of ns=2 is greater than ns=6 in DT is ', diff26G$p.value))
+```
+```{r}
+dfns = shapeMean(data3[which(data3$dt==1), ], 'subject', 'ns', 'numTrial')
+dfNS = dcast(dfns, subject + numTrial ~ ns, value.var = "Cor")
+dfNS$diff23 = dfNS$'2' - dfNS$'3'
+dfNS$diff36 = dfNS$'3' - dfNS$'6'
+dfNS$diff26 = dfNS$'2' - dfNS$'6'
+dfns = shapeMean(dfNS, 'subject')
+
+diff23 = t.test(dfns$diff23, mu=0, paired = F)
+diff23G = t.test(dfns$diff23, mu=0, alternative = 'greater',paired = F)
+diff36 = t.test(dfns$diff36, mu=0, paired = F)
+diff36G = t.test(dfns$diff36, mu=0, alternative = 'greater', paired = F)
+diff26 = t.test(dfns$diff26, mu=0, paired = F)
+diff26G = t.test(dfns$diff26, mu=0, alternative = 'greater',paired = F)
+
+print(paste0('In exp2, the pvalue of ns=2 is different from ns=3 in DT is ', diff23$p.value))
+print(paste0('the exp2, pvalue of ns=2 is greater than ns=3 in DT is ', diff23G$p.value))
+print(paste0('In exp2, the pvalue of ns=3 is different from ns=6 in DT is ', diff36$p.value))
+print(paste0('the exp2, pvalue of ns=3 is greater than ns=6 in DT is ', diff36G$p.value))
+print(paste0('In exp2, the pvalue of ns=2 is different from ns=6 in DT is ', diff26$p.value))
+print(paste0('the exp2, pvalue of ns=2 is greater than ns=6 in DT is ', diff26G$p.value))
+
+```
+```{r}
+dfns = shapeMean(data4[which(data4$dt==1), ], 'subject', 'ns', 'numTrial')
+dfNS = dcast(dfns, subject + numTrial ~ ns, value.var = "Cor")
+dfNS$diff23 = dfNS$'2' - dfNS$'3'
+dfNS$diff36 = dfNS$'3' - dfNS$'6'
+dfNS$diff26 = dfNS$'2' - dfNS$'6'
+dfns = shapeMean(dfNS, 'subject')
+
+diff23 = t.test(dfns$diff23, mu=0, paired = F)
+diff23G = t.test(dfns$diff23, mu=0, alternative = 'greater',paired = F)
+diff36 = t.test(dfns$diff36, mu=0, paired = F)
+diff36G = t.test(dfns$diff36, mu=0, alternative = 'greater', paired = F)
+diff26 = t.test(dfns$diff26, mu=0, paired = F)
+diff26G = t.test(dfns$diff26, mu=0, alternative = 'greater',paired = F)
+
+print(paste0('In exp3, the pvalue of ns=2 is different from ns=3 in DT is ', diff23$p.value))
+print(paste0('the exp3, pvalue of ns=2 is greater than ns=3 in DT is ', diff23G$p.value))
+print(paste0('In exp3, the pvalue of ns=3 is different from ns=6 in DT is ', diff36$p.value))
+print(paste0('the exp3, pvalue of ns=3 is greater than ns=6 in DT is ', diff36G$p.value))
+print(paste0('In exp3, the pvalue of ns=2 is different from ns=6 in DT is ', diff26$p.value))
+print(paste0('the exp3, pvalue of ns=2 is greater than ns=6 in DT is ', diff26G$p.value))
+```
+As expected. All these set size effect are significant.
+
+# Logistic Regression (hand remove outlier).
+```{r eval=FALSE, include=FALSE}
+coeffs1 = data.frame(matrix(ncol = 5, nrow = numSub2))
+colnames(coeffs1) = c('intercept', 'dt','ns', 'delay','Cor_cum') #order of variable names must match order of predictors in the glm model.
+coeffs2 = data.frame(matrix(ncol = 11, nrow = numSub2))
+colnames(coeffs2) = c('intercept', 'dt','ns', 'delay','Cor_cum','dt*ns', 'dt*delay','dt*Cor_cum','ns*delay','ns*Cor_cum','delay*Cor_cum')
+
+for (sub in 1:numSub2){
+  df_logis = data2[which(data2$subject == sub), ]%>% mutate_at(c('dt','ns', 'delay', 'Cor_cum'), scale) #z score these four columns
+  glm.fit1 = glm(Cor ~ dt + ns + delay + Cor_cum, data = df_logis, family = binomial, maxit = 500)
+  summ1 = summary(glm.fit1)
+  for (i in 1:ncol(coeffs1)){
+    coeffs1[sub, i] = summ1$coefficients[i,1]
+  }
+  glm.fit2 = glm(Cor ~ dt + ns + delay + Cor_cum+dt*ns+dt*delay+dt*Cor_cum +ns*delay+ns*Cor_cum+delay*Cor_cum, data = df_logis, family = binomial, maxit = 500)
+  summ2 = summary(glm.fit2)
+  for (i in 1:ncol(coeffs2)){
+    coeffs2[sub, i] = summ2$coefficients[i,1]
+  }
+}
+
+boxplot(coeffs2)
+print(coeffs2)
+coeffs2 = coeffs2[-c(13,25),]#clear outlier
+
+df_logis1 = shapeBoth(melt(coeffs1), 'variable')
+df_logis2 = shapeBoth(melt(coeffs2), 'variable')
+
+reg1 = barplt(df_logis1, as.factor(variable), m, NULL, 'logis reg w/o interaction (E1)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,
+               position=position_dodge(.9))
+
+reg2 = barplt(df_logis2, as.factor(variable), m, NULL, 'logis reg w/ interaction (E1)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,
+               position=position_dodge(.9))+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+reg1+ylim(-1.6,3)
+reg2
+
+diffdt = t.test(coeffs1$dt, mu=0, paired = F)
+diffdtL = t.test(coeffs1$dt, mu=0, alternative = 'less',paired = F)
+diffns = t.test(coeffs1$ns, mu=0, paired = F)
+diffnsL = t.test(coeffs1$ns, mu=0, alternative = 'less', paired = F)
+diffdelay = t.test(coeffs1$delay, mu=0, paired = F)
+diffdelayL = t.test(coeffs1$delay, mu=0, alternative = 'less',paired = F)
+
+print(paste0('In exp1, pvalue DT is ', diffdt$p.value))
+print(paste0('the exp1, pvalue one tail DT is ', diffdtL$p.value))
+print(paste0('In exp1, pvalue NS is ', diffns$p.value))
+print(paste0('the exp1, pvalue one tail NS is ', diffnsL$p.value))
+print(paste0('In exp1, pvalue delay is ', diffdelay$p.value))
+print(paste0('the exp1, pvalue one tail delay is ', diffdelayL$p.value))
+
+#grid.arrange(reg1, reg2, ncol=2)
+```
+```{r eval=FALSE, include=FALSE}
+coeffs1 = data.frame(matrix(ncol = 5, nrow = numSub3))
+colnames(coeffs1) = c('intercept', 'dt','ns', 'delay','Cor_cum') #order of variable names must match order of predictors in the glm model.
+coeffs2 = data.frame(matrix(ncol = 11, nrow = numSub3))
+colnames(coeffs2) = c('intercept', 'dt','ns', 'delay','Cor_cum','dt*ns', 'dt*delay','dt*Cor_cum','ns*delay','ns*Cor_cum','delay*Cor_cum')
+
+for (sub in 1:numSub3){
+  df_logis = data3[which(data3$subject == sub), ]%>% mutate_at(c('dt','ns', 'delay', 'Cor_cum'), scale) #z score these four columns
+  glm.fit1 = glm(Cor ~ dt + ns + delay + Cor_cum, data = df_logis, family = binomial, maxit = 500)
+  summ1 = summary(glm.fit1)
+  for (i in 1:ncol(coeffs1)){
+    coeffs1[sub, i] = summ1$coefficients[i,1]
+  }
+  glm.fit2 = glm(Cor ~ dt + ns + delay + Cor_cum+dt*ns+dt*delay+dt*Cor_cum +ns*delay+ns*Cor_cum+delay*Cor_cum, data = df_logis, family = binomial, maxit = 500)
+  summ2 = summary(glm.fit2)
+  for (i in 1:ncol(coeffs2)){
+    coeffs2[sub, i] = summ2$coefficients[i,1]
+  }
+}
+
+boxplot(coeffs2)
+print(coeffs2)
+coeffs2 = coeffs2[-c(6,10, 23, 22, 26, 17),]#clear outlier
+
+df_logis1 = shapeBoth(melt(coeffs1), 'variable')
+df_logis2 = shapeBoth(melt(coeffs2), 'variable')
+
+reg1 = barplt(df_logis1, as.factor(variable), m, NULL, 'logis reg w/o interaction (E2)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,
+               position=position_dodge(.9))
+
+reg2 = barplt(df_logis2, as.factor(variable), m, NULL, 'logis reg w/ interaction (E2)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,
+               position=position_dodge(.9))+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+reg1+ylim(-1.6,3)
+reg2
+print(coeffs2)
+
+diffdt = t.test(coeffs1$dt, mu=0, paired = F)
+diffdtL = t.test(coeffs1$dt, mu=0, alternative = 'less',paired = F)
+diffns = t.test(coeffs1$ns, mu=0, paired = F)
+diffnsL = t.test(coeffs1$ns, mu=0, alternative = 'less', paired = F)
+diffdelay = t.test(coeffs1$delay, mu=0, paired = F)
+diffdelayL = t.test(coeffs1$delay, mu=0, alternative = 'less',paired = F)
+
+print(paste0('In exp2, pvalue DT is ', diffdt$p.value))
+print(paste0('the exp2, pvalue one tail DT is ', diffdtL$p.value))
+print(paste0('In exp2, pvalue NS is ', diffns$p.value))
+print(paste0('the exp2, pvalue one tail NS is ', diffnsL$p.value))
+print(paste0('In exp2, pvalue delay is ', diffdelay$p.value))
+print(paste0('the exp2, pvalue one tail delay is ', diffdelayL$p.value))
+#grid.arrange(reg1, reg2, ncol=2)
+```
+```{r eval=FALSE, include=FALSE}
+coeffs1 = data.frame(matrix(ncol = 5, nrow = numSub4))
+colnames(coeffs1) = c('intercept', 'dt','ns', 'delay','Cor_cum') #order of variable names must match order of predictors in the glm model.
+coeffs2 = data.frame(matrix(ncol = 11, nrow = numSub4))
+colnames(coeffs2) = c('intercept', 'dt','ns', 'delay','Cor_cum','dt*ns', 'dt*delay','dt*Cor_cum','ns*delay','ns*Cor_cum','delay*Cor_cum')
+
+for (sub in 1:numSub4){
+  df_logis = data4[which(data4$subject == sub), ]%>% mutate_at(c('dt','ns', 'delay', 'Cor_cum'), scale) #z score these four columns
+  glm.fit1 = glm(Cor ~ dt + ns + delay + Cor_cum, data = df_logis, family = binomial, maxit = 500)
+  summ1 = summary(glm.fit1)
+  for (i in 1:ncol(coeffs1)){
+    coeffs1[sub, i] = summ1$coefficients[i,1]
+  }
+  glm.fit2 = glm(Cor ~ dt + ns + delay + Cor_cum+dt*ns+dt*delay+dt*Cor_cum +ns*delay+ns*Cor_cum+delay*Cor_cum, data = df_logis, family = binomial, maxit = 500)
+  summ2 = summary(glm.fit2)
+  for (i in 1:ncol(coeffs2)){
+    coeffs2[sub, i] = summ2$coefficients[i,1]
+  }
+}
+boxplot(coeffs2)
+
+df_logis1 = shapeBoth(melt(coeffs1), 'variable')
+df_logis2 = shapeBoth(melt(coeffs2), 'variable')
+
+reg1 = barplt(df_logis1, as.factor(variable), m, NULL, 'logis reg w/o interaction (E3)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,
+               position=position_dodge(.9))
+
+reg2 = barplt(df_logis2, as.factor(variable), m, NULL, 'logis reg w/ interaction (E3)','predictors','coefficients') + geom_errorbar(aes(ymin=m-se, ymax=m+se), width=.2,
+               position=position_dodge(.9))+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+reg1+ylim(-1.6,3)
+reg2
+print(coeffs2)
+
+diffdt = t.test(coeffs1$dt, mu=0, paired = F)
+diffdtL = t.test(coeffs1$dt, mu=0, alternative = 'less',paired = F)
+diffns = t.test(coeffs1$ns, mu=0, paired = F)
+diffnsL = t.test(coeffs1$ns, mu=0, alternative = 'less', paired = F)
+diffdelay = t.test(coeffs1$delay, mu=0, paired = F)
+diffdelayL = t.test(coeffs1$delay, mu=0, alternative = 'less',paired = F)
+
+print(paste0('In exp3, pvalue DT is ', diffdt$p.value))
+print(paste0('the exp3, pvalue one tail DT is ', diffdtL$p.value))
+print(paste0('In exp3, pvalue NS is ', diffns$p.value))
+print(paste0('the exp3, pvalue one tail NS is ', diffnsL$p.value))
+print(paste0('In exp3, pvalue delay is ', diffdelay$p.value))
+print(paste0('the exp3, pvalue one tail delay is ', diffdelayL$p.value))
+#grid.arrange(reg1, reg2, ncol=2)
+```
+-->

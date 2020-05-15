@@ -1,0 +1,101 @@
+---
+title: "Dual Task RLWM Accuracy of Im Task By Accuracy of Num Task"
+author: "Ham Huang"
+date: "10/03/2019, @Berkeley"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include = TRUE}
+#somehow include = TRUE. The default False does not work.
+knitr::opts_chunk$set(echo = F, message = F, warning = F) #for knitting the script. echo = F to not show code, warning = FALSE to show no warnings
+```
+```{r}
+#define some basic parameters
+numBlocks = 10 #but we have to take out the 10th block in analysis
+library(tidyverse)
+source("func.R")#self-defined useful functions
+```
+```{r}
+data2 = read.csv("cleaned-DT-RLWM-version2.csv")
+data3 = read.csv("cleaned-DT-RLWM-version3.csv")
+data4 = read.csv("cleaned-DT-RLWM-version4.csv")
+
+data2 = Cort1(data2)
+data3 = Cort1(data3)
+data4 = Cort1(data4)
+
+numSub2 = length(unique(data2$subject))
+numSub3 = length(unique(data3$subject))
+numSub4 = length(unique(data4$subject))
+
+```
+
+
+# Section 3: Barplot of accuracy given number task is correct vs incorrect. 
+```{r}
+attach(data2)
+df2.1 = shapeMean(data2[which(dt == 1 & !is.na(Cor_d)),], 'subject','ns','Cor_d')
+df3.1 = shapeMean(df2.1,'ns','Cor_d')
+barplt1(df3.1, as.factor(ns), Cor, as.factor(Cor_d), "Avg acc by conds in DT (E1)", "Set size condition", "Average accuracy") + geom_point(aes(x = as.factor(ns), y = Cor, color = subject, group = as.factor(Cor_d)), df2.1,position=position_dodge(width=0.75))+labs(x = "setsize", fill = "dt correct?")
+barplt1(df3.1, as.factor(ns), Cor1, as.factor(Cor_d), "Avg acc of t+1 by conds in DT (E1)", "Set size condition", "Average accuracy") + geom_point(aes(x = as.factor(ns), y = Cor1, color = subject, group = as.factor(Cor_d)), df2.1,position=position_dodge(width=0.75))+labs(x = "setsize", fill = "dt correct?")
+detach(data2)
+attach(df2.1)
+df1 = df2.1[which(Cor_d == 1),]
+df0 = df2.1[which(Cor_d == 0),]
+df1$diff = df1$Cor - df0$Cor
+df1$diff1 = df1$Cor1 - df0$Cor1
+df_diff = shapeBoth(df1, 'ns')
+barplt1(df_diff, as.factor(ns), diff_m, NULL, 'Cor DT1-DT0 (E1)', 'ns', 'avg diff')+ geom_errorbar(aes(ymin=diff_m-diff_se, ymax=diff_m+diff_se), width=.2, position=position_dodge(.9))+ylim(-0.25,0.3)
+barplt1(df_diff, as.factor(ns), diff1_m, NULL, 'Cor DT1-DT0 t+1 (E1)', 'ns', 'avg diff')+ geom_errorbar(aes(ymin=diff1_m-diff1_se, ymax=diff1_m+diff1_se), width=.2, position=position_dodge(.9))+ylim(-0.25,0.3)
+detach(df2.1)
+```
+```{r}
+attach(data3)
+df2.1 = shapeMean(data3[which(dt == 1 & !is.na(Cor_d)),], 'subject','ns','Cor_d')
+df3.1 = shapeMean(df2.1,'ns','Cor_d')
+barplt1(df3.1, as.factor(ns), Cor, as.factor(Cor_d), "Avg acc by conds in DT (E2)", "Set size condition", "Average accuracy") + geom_point(aes(x = as.factor(ns), y = Cor, color = subject, group = as.factor(Cor_d)), df2.1,position=position_dodge(width=0.75))+labs(x = "setsize", fill = "dt correct?")
+barplt1(df3.1, as.factor(ns), Cor1, as.factor(Cor_d), "Avg acc of t+1 by conds in DT (E2)", "Set size condition", "Average accuracy") + geom_point(aes(x = as.factor(ns), y = Cor1, color = subject, group = as.factor(Cor_d)), df2.1,position=position_dodge(width=0.75))+labs(x = "setsize", fill = "dt correct?")
+detach(data3)
+attach(df2.1)
+df1 = df2.1[which(Cor_d == 1),]
+df0 = df2.1[which(Cor_d == 0),]
+df1$diff = df1$Cor - df0$Cor
+df1$diff1 = df1$Cor1 - df0$Cor1
+df_diff = shapeBoth(df1, 'ns')
+barplt1(df_diff, as.factor(ns), diff_m, NULL, 'Cor DT1-DT0 (E2)', 'ns', 'avg diff')+ geom_errorbar(aes(ymin=diff_m-diff_se, ymax=diff_m+diff_se), width=.2, position=position_dodge(.9))+ylim(-0.25,0.3)
+barplt1(df_diff, as.factor(ns), diff1_m, NULL, 'Cor DT1-DT0 t+1 (E2)', 'ns', 'avg diff')+ geom_errorbar(aes(ymin=diff1_m-diff1_se, ymax=diff1_m+diff1_se), width=.2, position=position_dodge(.9))+ylim(-0.25,0.3)
+detach(df2.1)
+```
+```{r}
+df2.0 = shapeMean(data4[which(data4$dt == 0 & !is.na(data4$Cor_d)),], 'subject','ns','Cor_d')
+df2.1 = shapeMean(data4[which(data4$dt == 1 & !is.na(data4$Cor_d)),], 'subject','ns','Cor_d')
+df3.0 = shapeMean(df2.0,'ns','Cor_d')
+df3.1 = shapeMean(df2.1,'ns','Cor_d')
+#df3 = shapeMean(df2, 'ns', 'Cor_d')
+barplt1(df3.0, as.factor(ns), Cor, as.factor(Cor_d), "Avg acc by conditions in ST (E3)", "Set size condition", "Average accuracy") + geom_point(aes(x = as.factor(ns), y = Cor, color = subject, group = as.factor(Cor_d)), df2.0,position=position_dodge(width=0.75))+labs(x = "setsize", fill = "dt correct?")
+barplt1(df3.0, as.factor(ns), Cor1, as.factor(Cor_d), "Avg acc of t+1 by conds in ST (E3)", "Set size condition", "Average accuracy") + geom_point(aes(x = as.factor(ns), y = Cor1, color = subject, group = as.factor(Cor_d)), df2.1,position=position_dodge(width=0.75))+labs(x = "setsize", fill = "dt correct?")
+barplt1(df3.1, as.factor(ns), Cor, as.factor(Cor_d), "Avg acc by conditions in DT (E3)", "Set size condition", "Average accuracy") + geom_point(aes(x = as.factor(ns), y = Cor, color = subject, group = as.factor(Cor_d)), df2.1,position=position_dodge(width=0.75))+labs(x = "setsize", fill = "dt correct?")
+barplt1(df3.1, as.factor(ns), Cor1, as.factor(Cor_d), "Avg acc of t+1 by conds in DT (E3)", "Set size condition", "Average accuracy") + geom_point(aes(x = as.factor(ns), y = Cor1, color = subject, group = as.factor(Cor_d)), df2.1,position=position_dodge(width=0.75))+labs(x = "setsize", fill = "dt correct?")
+
+attach(df2.0)
+df1 = df2.0[which(df2.0$Cor_d == 1),]
+df0 = df2.0[which(df2.0$Cor_d == 0),]
+df1$diff = df1$Cor - df0$Cor
+df1$diff1 = df1$Cor1 - df0$Cor1
+df_diff = shapeBoth(df1, 'ns')
+barplt1(df_diff, as.factor(ns), diff_m, NULL, 'Cor ST1-ST0 (E3)', 'ns', 'avg diff')+ geom_errorbar(aes(ymin=diff_m-diff_se, ymax=diff_m+diff_se), width=.2, position=position_dodge(.9))+ylim(-0.25,0.3)
+barplt1(df_diff, as.factor(ns), diff1_m, NULL, 'Cor ST1-ST0 t+1 (E3)', 'ns', 'avg diff')+ geom_errorbar(aes(ymin=diff1_m-diff1_se, ymax=diff1_m+diff1_se), width=.2, position=position_dodge(.9))+ylim(-0.25,0.3)
+detach(df2.0)
+attach(df2.1)
+df1 = df2.1[which(df2.1$Cor_d == 1),]
+df0 = df2.1[which(df2.1$Cor_d == 0),]
+df1$diff = df1$Cor - df0$Cor
+df1$diff1 = df1$Cor1 - df0$Cor1
+df_diff = shapeBoth(df1, 'ns')
+barplt1(df_diff, as.factor(ns), diff_m, NULL, 'Cor DT1-DT0 (E3)', 'ns', 'avg diff')+ geom_errorbar(aes(ymin=diff_m-diff_se, ymax=diff_m+diff_se), width=.2, position=position_dodge(.9))+ylim(-0.25,0.3)
+barplt1(df_diff, as.factor(ns), diff1_m, NULL, 'Cor DT1-DT0 t+1 (E3)', 'ns', 'avg diff')+ geom_errorbar(aes(ymin=diff1_m-diff1_se, ymax=diff1_m+diff1_se), width=.2, position=position_dodge(.9))+ylim(-0.25,0.3)
+detach(df2.1)
+```
+
