@@ -1,0 +1,37 @@
+---
+title: "Model Validation"
+author: "Ham Huang"
+date: "1/05/2020, @Berkeley"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include = TRUE}
+#somehow include = TRUE. The default False does not work.
+knitr::opts_chunk$set(echo = F, message = T, warning = F) #for knitting the script. echo = F to not show code, warning = FALSE to show no warnings
+```
+```{r}
+library(tidyverse)
+source("../func.R")
+data_te = read.csv("../Subject_Data/DT-RLWM-version4-te.csv")
+data = read.csv("../Subject_Data/DT-RLWM-version4.csv")
+``` 
+
+```{r}
+label = c('Task-Switch', 'Dual-Task')
+df = convert(read.csv("../Learning_Validation/RLWM_actionSoftmax.csv"), data)%>%
+     mutate(dt=label[dt+1])
+df_te = convert(read.csv("../Testing_Validation/RLWM_actionSoftmax.csv"), data_te)%>%
+     mutate(dt=label[dt+1])
+
+plot = valPlt(df, NULL)
+plot_te = valPlt(df_te, NULL)
+
+png("LearningValidation.png", units="in", width=5, height=5, res=300)
+addSmallLegend(plot)
+dev.off()
+png("TestingValidation.png", units="in", width=5, height=5, res=300)
+addSmallLegend(plot_te)
+dev.off()
+```
