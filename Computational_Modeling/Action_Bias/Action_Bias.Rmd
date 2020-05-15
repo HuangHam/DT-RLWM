@@ -1,0 +1,105 @@
+---
+title: "Model Validation"
+author: "Ham Huang"
+date: "1/05/2020, @Berkeley"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include = TRUE}
+#somehow include = TRUE. The default False does not work.
+knitr::opts_chunk$set(echo = T, message = T, warning = F) #for knitting the script. echo = F to not show code, warning = FALSE to show no warnings
+```
+```{r}
+library(tidyverse)
+source("../func.R")
+Data = read.csv("DT-RLWM-version4.csv")%>%select(subject, dt, isBias, ns, Cor)
+RLWM_modulation = read.csv("RLWM_modulation.csv")%>%select(subject, dt, isBias, ns, Cor)
+RLWM_actionSoftmax = read.csv("RLWM_actionSoftmax.csv")%>%select(subject, dt, isBias, ns, Cor)
+lambda = read.csv("lambda.csv")
+
+``` 
+
+```{r}
+dataBias = shapeMean(Data[Data$Cor==0,], 'subject','dt')
+moduBias = shapeMean(RLWM_modulation[RLWM_modulation$Cor==0,], 'subject','dt')
+actBias = shapeMean(RLWM_actionSoftmax[RLWM_actionSoftmax$Cor==0,], 'subject','dt')
+                    
+df1 = shapeBoth(dataBias, 'dt')
+df1$data = "data"
+
+df3 = shapeBoth(moduBias, 'dt')
+df3$data = "modulation"
+
+df2 = shapeBoth(actBias, 'dt')
+df2$data = "action confusion"
+
+label = c('Task-Switch', 'Dual-Task')
+df = na.omit(rbind(df1,df2,df3))%>%
+     mutate(dt=label[dt+1])
+
+Diff = data.frame('parameter' = lambda$lambdaDT-lambda$lambdaST, 
+                  'bias' = na.omit(dataBias[dataBias$dt==1,]$isBias-dataBias[dataBias$dt==0,]$isBias))
+DiffDT = data.frame('parameter' = lambda$lambdaDT, 
+                  'bias' = na.omit(dataBias[dataBias$dt==1,]$isBias))
+DiffST = data.frame('parameter' = lambda$lambdaST, 
+                  'bias' = na.omit(dataBias[dataBias$dt==0,]$isBias))
+
+cor.test(Diff$parameter,Diff$bias,
+         alternative ="two.sided",
+         method = "spearman")
+cor.test(lambda$lambdaDT,na.omit(dataBias[dataBias$dt==1,]$isBias),
+         alternative ="two.sided",
+         method = "spearman")
+cor.test(lambda$lambdaST,na.omit(dataBias[dataBias$dt==0,]$isBias),
+         alternative ="two.sided",
+         method = "spearman")
+
+corrDT = ggplot(DiffDT,aes(bias, parameter)) + geom_point()+
+  #stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm', formula= y~x, fill="red3") + labs(x = "Dual-Task bias", y = expression("Dual-Task "*lambda))+ylim(-0.25, 1)
+corrST = ggplot(DiffST,aes(bias, parameter)) + geom_point()+
+  #stat_summary(fun.data=mean_cl_normal) + 
+  geom_smooth(method='lm', formula= y~x, fill="gray30") + labs(x = "Task-Switch bias", y = expression("Task-Switch "*lambda))+ylim(-0.25, 1)
+
+bar = barplt(df, as.factor(data), isBias_m, dt, NULL, NULL, 'Action bias (error trials)') +
+  geom_errorbar(aes(ymin=isBias_m-isBias_se, ymax=isBias_m+isBias_se), width=.2, position=position_dodge(.9))+
+  theme(legend.position = c(.95, .95), legend.box = "horizontal", legend.justification = c("right", "top"),legend.box.just = "left",legend.background = element_rect(colour = "transparent", fill = "transparent"),axis.text.x = element_text(size=11, angle=15, hjust=0.5, vjust=0.5))+ coord_cartesian(ylim=c(0.45,0.6))
+table(Diff$bias)
+#gridExtra::grid.arrange(bar, corr, ncol=2)
+t.test(lambda$lambdaDT-lambda$lambdaST, mu=0 ,
+         alternative ="two.sided")
+
+t.test(dataBias[dataBias$dt == 1,]$isBias, mu=0.5, alternative ="two.sided")
+t.test(dataBias[dataBias$dt == 0,]$isBias, mu=0.5, alternative ="two.sided")
+t.test(dataBias[dataBias$dt == 0,]$isBias, dataBias[dataBias$dt == 1,]$isBias, alternative ="two.sided")
+
+t.test(actBias[actBias$dt == 1,]$isBias, mu=0.5, alternative ="two.sided")
+t.test(actBias[actBias$dt == 0,]$isBias, mu=0.5, alternative ="two.sided")
+t.test(actBias[actBias$dt == 0,]$isBias, actBias[actBias$dt == 1,]$isBias, alternative ="two.sided")
+
+t.test(moduBias[moduBias$dt == 1,]$isBias, mu=0.5, alternative ="two.sided")
+t.test(moduBias[moduBias$dt == 0,]$isBias, mu=0.5, alternative ="two.sided")
+t.test(moduBias[moduBias$dt == 0,]$isBias, moduBias[moduBias$dt == 1,]$isBias, alternative ="two.sided")
+
+png("ActBias.png", units="in", width=5, height=5, res=300)
+addSmallLegend(bar)
+dev.off()
+
+png("DTCorr.png", units="in", width=5, height=5, res=300)
+addSmallLegend(corrDT)
+dev.off()
+
+png("STCorr.png", units="in", width=5, height=5, res=300)
+addSmallLegend(corrST)
+dev.off()
+```
+
+```{r}
+dataBias = shapeMean(Data[Data$Cor==0,], 'subject','ns')
+length(na.omit(dataBias[dataBias$ns==6, ]$isBias))
+t.test(na.omit(dataBias[dataBias$ns==6, ]$isBias), na.omit(dataBias[dataBias$ns!=6, ]$isBias), alternative ="two.sided")
+#cor.test(lambda$lambdaDT,na.omit(dataBias[dataBias$ns==6&dataBias$dt==1,]$isBias),alternative ="two.sided",method = "spearman")
+```
+

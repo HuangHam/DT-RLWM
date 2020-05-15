@@ -1,0 +1,87 @@
+---
+title: "Model Validation"
+author: "Ham Huang"
+date: "1/05/2020, @Berkeley"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include = TRUE}
+#somehow include = TRUE. The default False does not work.
+knitr::opts_chunk$set(echo = F, message = T, warning = F) #for knitting the script. echo = F to not show code, warning = FALSE to show no warnings
+```
+```{r}
+library(tidyverse)
+source("../func.R")
+data = read.csv("../Subject_Data/DT-RLWM-version4.csv")
+``` 
+
+```{r}
+df_RLWM_credit = convert(read.csv("RLWM_credit.csv"), data)
+df_RLWM_credit_i = convert(read.csv("RLWM_credit_i.csv"), data)
+df_RLWM_credit_ii = convert(read.csv("RLWM_credit_ii.csv"), data)
+df_RLWM_action = convert(read.csv("RLWM_action.csv"), data)
+
+plot_RLWM_credit = valPlt(df_RLWM_credit, 'credit assignment')
+plot_RLWM_credit_i = valPlt(df_RLWM_credit_i, "credit assignment w/ interaction")
+plot_RLWM_credit_ii = valPlt(df_RLWM_credit_ii, "credit assignment w/ double interaction")
+plot_RLWM_action = valPlt(df_RLWM_action, "action assignment")
+
+gridExtra::grid.arrange(addSmallLegend(plot_RLWM_credit), addSmallLegend(plot_RLWM_credit_i), addSmallLegend(plot_RLWM_credit_ii), addSmallLegend(plot_RLWM_action), ncol = 2)
+```
+```{r}
+df_RLWM_action_i = convert(read.csv("RLWM_action_i.csv"), data)
+df_RLWM_credAct_i = convert(read.csv("RLWM_credAct_i.csv"), data)
+df_RLWM_actionSoftmax = convert(read.csv("RLWM_actionSoftmax.csv"), data)
+df_RLWM_credActDouble_i = convert(read.csv("RLWM_actionSoftmax.csv"), data)
+
+plot_RLWM_action_i = valPlt(df_RLWM_action_i,"action assignment w/ interaction")
+plot_RLWM_credAct_i = valPlt(df_RLWM_credAct_i,"credit action assignment w/ interaction")
+plot_RLWM_actionSoftmax = valPlt(df_RLWM_actionSoftmax, "credit action actionSoftmax")
+plot_RLWM_credActDouble_i = valPlt(df_RLWM_credActDouble_i, "credit action double assignment w/ interaction")
+
+#gridExtra::grid.arrange(addSmallLegend(plot_RLWM_action_i), addSmallLegend(plot_RLWM_credAct_i),
+                        #addSmallLegend(plot_RLWM_actionSoftmax), addSmallLegend(plot_RLWM_credActDouble_i), ncol = 2)
+```
+```{r}
+df_RLWM_filter = convert(read.csv("RLWM_filter.csv"), data)
+df_RLWM_filterQ = convert(read.csv("RLWM_filterQ.csv"), data)
+df_RLWM_filterW = convert(read.csv("RLWM_filterW.csv"), data)
+df_RLWM_WFQA = convert(read.csv("RLWM_WFQA.csv"), data)
+
+plot_RLWM_filter = valPlt(df_RLWM_filter, "attention filter W&Q")
+plot_RLWM_filterQ = valPlt(df_RLWM_filterQ,"attention filter Q")
+plot_RLWM_filterW = valPlt(df_RLWM_filterW, "attention filter W")
+plot_RLWM_WFQA= valPlt(df_RLWM_WFQA,  "WFQA")
+
+gridExtra::grid.arrange(addSmallLegend(plot_RLWM_filter),addSmallLegend(plot_RLWM_filterQ), 
+                        addSmallLegend(plot_RLWM_filterW),addSmallLegend(plot_RLWM_WFQA), ncol = 2)
+```
+```{r}
+df_RLWM_actionWQ2 = convert(read.csv("RLWM_actionWQ2.csv"), data)
+df_RLWM_actionWQ = convert(read.csv("RLWM_actionWQ.csv"), data)
+df_RLWM_WFQA2 = convert(read.csv("RLWM_WFQA2.csv"), data)
+df_RLWM_WFQA3 = convert(read.csv("RLWM_WFQA3.csv"), data)
+
+plot_RLWM_actionWQ = valPlt(df_RLWM_actionWQ,"action WQ")
+plot_RLWM_actionWQ2 = valPlt(df_RLWM_actionWQ2,"action one W two Q")
+plot_RLWM_WFQA2 = valPlt(df_RLWM_WFQA2, "one WF two QA")
+plot_RLWM_WFQA3 = valPlt(df_RLWM_WFQA3, "WFQA3")
+
+gridExtra::grid.arrange(addSmallLegend(plot_RLWM_actionWQ),addSmallLegend(plot_RLWM_actionWQ2),addSmallLegend(plot_RLWM_WFQA2),addSmallLegend(plot_RLWM_WFQA3), ncol = 2)
+```
+
+```{r}
+df_RLWM_WFQA2_i = convert(read.csv("RLWM_WFQA2_i.csv"), data)
+df_RLWM_SFDA = convert(read.csv("RLWM_SFDA.csv"), data)
+df_RLWM_SFDA_i = convert(read.csv("RLWM_SFDA_i.csv"), data)
+df_RLWM_action_DisFree = convert(read.csv("RLWM_action_DisFree.csv"), data)
+plot_RLWM_SFDA = valPlt(df_RLWM_SFDA ,"SFDA")
+plot_RLWM_SFDA_i = valPlt(df_RLWM_SFDA_i ,"SFDA_i")
+plot_RLWM_WFQA2_i = valPlt(df_RLWM_WFQA2_i, "one WF two QA i")
+plot_RLWM_action_DisFree = valPlt(df_RLWM_action_DisFree,"action_DisFree")
+gridExtra::grid.arrange(addSmallLegend(plot_RLWM_SFDA),addSmallLegend(plot_RLWM_SFDA_i),
+                        addSmallLegend(plot_RLWM_WFQA2_i),addSmallLegend(plot_RLWM_action_DisFree), ncol = 2)
+```
+
